@@ -90,7 +90,7 @@ measure();       //subrutine to measure
         
         for (int i=0; i <= 10; i++){ 
         move(1, 255, 1); //motor 1, full speed, left
-        delay(100); //ms
+        delay(85); //ms
         move(1, 0, 1); //motor 1, 0 speed, left
 
                  move(2, 255, 0); //motor 2 vibrador, full speed, right
@@ -123,11 +123,11 @@ measure();       //subrutine to measure
   move(2, 0, 1); //motor 2 vibrador, 0 speed, left
   stop();
   
-  delay(5000);
+  delay(60000);
   digitalWrite(whater, LOW);
-  delay(10000);   //water pump on 300000
+  delay(420000);   //water pump on 420000
   digitalWrite(whater, HIGH);
-  delay(30000);       // 7200000  2 hours delay to not overfeed cat can come during this time but not feed again
+  delay(7200000);       // 7200000  2 hours delay to not overfeed cat can come during this time but not feed again
  //    for (int variable2 = 120; variable2 <=1; variable2--) { 
  // delay(60000); //delay of one minute
    //  }
