@@ -1,9 +1,8 @@
 //CAT FEEDER 
-//test
-//test2
+
 //2.10ESP8266 wifi uploading data to PVCloud
 //2.9 pin 3 and 2 changed by 0 and 1 for using it for ESP8266
-//2.8 whater implementation 
+//2.8 water implementation 
 //2.7 lost due to overwrite
 //2.6 better sequense to dispense avoiding jams
 //2.5 Cat is scare to vibration need to load delayed after cat left.
@@ -13,9 +12,12 @@
 //motor A connected between A01 and A02
 //motor B connected between B01 and B02
 
+#include <SoftwareSerial.h>
+SoftwareSerial mySerial(3, 2); //Pines: RX->D3, TX->D2
+
 //pins declarations 
 int STBY = 10; //standby
-const int whater = 0; // pin activation whater
+const int water = 0; // pin activation water
 
 //Motor A
 const int PWMA = 1; //Speed control 
@@ -34,6 +36,20 @@ const int led = 13;
 long duration;     //holds pulse width proporsional to distance
 int cm = 0;        // holds distance in centimeters
 
+
+//for wifi module ESP8266
+char a;
+String data;
+String rst = "AT+RST"; //Comando AT para reiniciar el ESP
+String modo = "AT+CWMODE=3"; //Comando AT para establecer el ESP en modo AP
+//String conectar = "AT+CWJAP=\"SED_InnovationCenter\",\"Innovation@IntelCR\""; //Comando AT para conectarse a una red inalámbrica
+String conectar = "AT+CWJAP=\"R2D2\",\"c3po1234\""; //Comando AT para conectarse a una red inalámbrica
+String server = "AT+CIPSTART=\"TCP\",\"160.153.48.166\",80";
+String trama; //Variable donde se almacenará el comando AT para establecer la longitud del mensaje
+String post = "";
+int consecutivo = 0;
+
+
 void setup(){
  // Serial.begin(9600);
   pinMode(STBY, OUTPUT);
@@ -47,8 +63,41 @@ void setup(){
   pinMode(trig, OUTPUT); 
   pinMode(echo, INPUT);
   pinMode(led, OUTPUT);
-  pinMode(whater, OUTPUT);
-  digitalWrite (whater, HIGH);
+  pinMode(water, OUTPUT);
+  digitalWrite (water, HIGH);
+
+//for wifi module ESP8266
+
+   post = "POST /pvcloud_pre/backend/vse_add_value.php?account_id=24&app_id=86&api_key=dc0e291b03d34582d63bddbc0a5b98ee5bea913c&label=Gato";
+   post += "&value=";
+   post += consecutivo;
+   post += "&type=NUMERICO&captured_datetime= HTTP/1.1\r\nHost: costaricamakers.com:80\r\n\r\n"; //Secuencia de solicitud POST
+
+  mySerial.begin(9600); //Inicializar puerto de comunicación con el ESP
+
+  mySerial.println("AT"); //Mensaje "Prueba" al ESP
+  leer(); //Leer datos devueltos por el ESP
+
+  //Los siguientes comandos deben ejecutarse sólo la primera vez
+  mySerial.println(rst); //Reiniciar ESP
+  leer();
+  
+  mySerial.println(modo); //Establecer modo del ESP
+  leer();
+  
+  mySerial.println(conectar); //Conectarse con la red
+  leer();
+
+  //Estos comandos se deben ejecutar cada vez que se desee comunicarse con el servidor
+  mySerial.println(server); //Establecer conexión
+  leer();
+  
+  trama = "AT+CIPSEND=" + String(post.length()); //Comando AT para establecer la longitud del mensaje 
+  mySerial.println(trama); //Establecer longitud
+  leer();
+
+  mySerial.println(post); //Enviar solicitud de POST
+  leer();
   
 }
 void loop(){
@@ -61,7 +110,7 @@ measure();       //subrutine to measure
           int dist_count = 0;
           for (int i=0; i <= 10; i++){
               measure();
-                if (cm < 17) {
+                if (cm < 19) {
                     dist_count++;
                 }
 
@@ -88,7 +137,7 @@ measure();       //subrutine to measure
         
         
         
-        for (int i=0; i <= 10; i++){ 
+        for (int i=0; i <= 15; i++){ 
         move(1, 255, 1); //motor 1, full speed, left
         delay(85); //ms
         move(1, 0, 1); //motor 1, 0 speed, left
@@ -122,11 +171,11 @@ measure();       //subrutine to measure
   delay(2000);
   move(2, 0, 1); //motor 2 vibrador, 0 speed, left
   stop();
-  
-  delay(60000);
-  digitalWrite(whater, LOW);
+  wifiupload();
+  //delay(30000);
+  digitalWrite(water, LOW);
   delay(420000);   //water pump on 420000
-  digitalWrite(whater, HIGH);
+  digitalWrite(water, HIGH);
   delay(7200000);       // 7200000  2 hours delay to not overfeed cat can come during this time but not feed again
  //    for (int variable2 = 120; variable2 <=1; variable2--) { 
  // delay(60000); //delay of one minute
@@ -193,6 +242,36 @@ long microsecondsToCentimeters(long microseconds)
   return microseconds / 29 / 2;
   }
 
+ //Función para leer los datos enviados por el ESP
+void leer() {
+  unsigned long start = millis();
+  while (millis() - start < 10000) {
+    while (mySerial.available()>0){
+      a = mySerial.read();
+     //if (a=='\0') continue;
+           data += a;
+      }    
+   }
+}  
+void wifiupload() {
+    post = "POST /pvcloud_pre/backend/vse_add_value.php?account_id=24&app_id=86&api_key=dc0e291b03d34582d63bddbc0a5b98ee5bea913c&label=Gato";
+  post += "&value=";
+  post += consecutivo;
+  post += "&type=NUMERICO&captured_datetime= HTTP/1.1\r\nHost: costaricamakers.com:80\r\n\r\n"; //Secuencia de solicitud POST
+
+
+   mySerial.println(server); //Establecer conexión
+  leer();
+  
+  trama = "AT+CIPSEND=" + String(post.length()); //Comando AT para establecer la longitud del mensaje 
+  mySerial.println(trama); //Establecer longitud
+  leer();
+
+  mySerial.println(post); //Enviar solicitud de POST
+  leer();
+  delay(10000);
+  consecutivo++;
+}
 
 
   
